@@ -25,5 +25,4 @@ elif option == "Therapeutic Equivalence Optimization":
     st.switch_page("pages/equivalence.py")
 elif option == "Drug Utilization Trend Prediction":
     st.switch_page("pages/trendprediction.py")
-elif option == "Cost Per Member Per Month Tracking":
-    st.switch_page("pages/tracking.py")
+

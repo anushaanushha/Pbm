@@ -4,9 +4,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.neighbors import NearestNeighbors
 import streamlit as st
 
-# -----------------------------
-# Helpers
-# -----------------------------
+
 def parse_cost(x):
     s = str(x).strip()
     cleaned = re.sub(r"[^0-9.]", "", s)
@@ -31,21 +29,16 @@ def row_alternatives(row):
     pairs.sort(key=lambda x: x[1])
     return pairs
 
-# -----------------------------
-# Load dataset
-# -----------------------------
+
 @st.cache_data
 def load_data(file_path):
     df = pd.read_csv(file_path)
     df.fillna("NULL", inplace=True)
     return df
 
-file_path = "data/updated_prescription_dates.csv"   # keep your file in same folder
+file_path = "data/updated_prescription_dates.csv"   
 df = load_data(file_path)
 
-# -----------------------------
-# Prepare TF-IDF & KNN model
-# -----------------------------
 df["combined"] = (
     df["Medicine"].astype(str) + " "
     + (df["Therapeutic Class"].astype(str) if "Therapeutic Class" in df.columns else "")
@@ -59,9 +52,7 @@ tfidf_matrix = tfidf.fit_transform(df["combined"])
 knn = NearestNeighbors(n_neighbors=6, metric="cosine")
 knn.fit(tfidf_matrix)
 
-# -----------------------------
-# Recommendation Function
-# -----------------------------
+
 def recommend_and_format(medicine_name: str):
     matches = df[df["Medicine"].str.lower() == medicine_name.lower()]
     if matches.empty:
@@ -70,7 +61,7 @@ def recommend_and_format(medicine_name: str):
     idx = matches.index[0]
     input_row = df.loc[idx]
 
-    # 1) Cheapest from the INPUT medicine's own row
+   
     input_alts = row_alternatives(input_row)
     top_line = None
     if input_alts:
@@ -82,7 +73,7 @@ def recommend_and_format(medicine_name: str):
             "from_cost": parse_cost(input_row["Drug_Cost"]) if "Drug_Cost" in df.columns else "NA",
         }
 
-    # 2) Collect cheapest-from-each similar medicine
+   
     distances, indices = knn.kneighbors(tfidf_matrix[idx], n_neighbors=6)
     others = []
     for i in indices.flatten():
@@ -100,7 +91,7 @@ def recommend_and_format(medicine_name: str):
             "from_cost": parse_cost(row_i["Drug_Cost"]) if "Drug_Cost" in df.columns else "NA",
         })
 
-    # Deduplicate
+    
     seen = {}
     def keyfn(x): return x["alt"].strip().lower()
     for item in others:
@@ -118,27 +109,24 @@ def recommend_and_format(medicine_name: str):
 
     others = [o for o in others if keyfn(o) != keyfn(top_line)]
 
-    # --- Pretty formatting ---
+    
     lines = []
     lines.append(f"👉 **Drug name**: {top_line['from_med']}")
     lines.append(f"**Original Cost**: {top_line['from_cost']}")
     lines.append(f"💰 **Cheapest Alternative Drug**: {top_line['alt']}")
-    lines.append(f"**Cost**: :green[{top_line['cost']}]")  # highlight cost in green
+    lines.append(f"**Cost**: :green[{top_line['cost']}]")  
 
-    return "<br>".join(lines)   # Use <br> for line breaks
+    return "<br>".join(lines)   
 
-# -----------------------------
-# Streamlit UI
-# -----------------------------
+
 st.title("💊 Medicine Alternative Finder")
 st.write("Search for a medicine and get the cheapest alternative recommendations.")
 
-# Medicine dropdown (auto-suggest)
 medicine_list = sorted(df["Medicine"].unique())
 medicine_input = st.selectbox("🔎 Select or type a medicine name:", medicine_list)
 
 if medicine_input:
     result = recommend_and_format(medicine_input)
-    st.markdown(result, unsafe_allow_html=True)   # Allow HTML for <br> line breaks
+    st.markdown(result, unsafe_allow_html=True)   
 else:
     st.warning("Please select or type a medicine name.")

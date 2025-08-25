@@ -28,10 +28,10 @@ if option == "Predict Future Trend":
     drug_list = df["drugname"].unique().tolist()
     selected_drug = st.selectbox("Select Drug Name", drug_list)
 
-    # User selects Year
+   
     selected_year = st.slider("Select Year", 2025, 2030)
 
-    # User selects Month(s)
+    
     selected_months = st.multiselect(
         "Select Month(s)", 
         options=list(range(1,13)), 
@@ -45,8 +45,7 @@ if option == "Predict Future Trend":
         drug_df = df[df["drugname"] == selected_drug]
 
         if not drug_df.empty:
-            # Compute historical averages/modes for the selected drug
-            # Compute historical averages/modes for the selected drug
+            
             avg_values = {
                 "season": drug_df["season"].mode()[0],
                 "alternatedrug": drug_df["alternatedrug"].mode()[0],
@@ -55,7 +54,7 @@ if option == "Predict Future Trend":
                 "no_of_customer_using_alternate_drug": drug_df["no_of_customer_using_alternate_drug"].mode()[0]
             }
 
-            # Add small variation (±10%)
+            
             variation = 0.1  
 
             future_df = pd.DataFrame({
@@ -91,10 +90,9 @@ if option == "Predict Future Trend":
                 future_df[col] = future_df[col].apply(lambda x: x if x in le.classes_ else le.classes_[0])
                 future_df[col] = le.transform(future_df[col])
 
-            # Predict drugcost
             future_df["drugcost"] = rf_model.predict(future_df)
 
-            # Display relevant columns
+            
             st.subheader(f"Predicted Future Trend for {selected_drug} in {selected_year}")
             st.dataframe(future_df[[ "Month", "no_of_customer_using_drug", "drugcost", "drugname"]])
 

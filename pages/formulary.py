@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-# Load dataset
+
 @st.cache_data
 def load_data():
     return pd.read_csv("data/updated_prescription_dates.csv")
@@ -10,25 +10,25 @@ df = load_data()
 
 st.title("💊 Formulary Impact Analysis")
 
-# Multi-select dropdown for drugs
+
 drug_list = sorted(df['Medicine'].dropna().unique().tolist())
 selected_drugs = st.multiselect("Select Drug(s):", drug_list)
 
 if selected_drugs:
-    # Filter selected drugs
+   
     selected_data = df[df['Medicine'].isin(selected_drugs)]
 
-    # Base cost calculation
+    
     st.subheader("📌 Base Drug Costs (USD)")
     total_base_cost = selected_data['Drug_Cost'].sum()
     st.write(selected_data[['Medicine', 'Drug_Cost']])
 
-    # Insurance toggle
+   
     st.subheader("🛡 Insurance Option")
     use_insurance = st.checkbox("Apply Insurance Discount")
 
     if use_insurance:
-        # Insurance applied
+       
         insured_data = selected_data[['Medicine', 'Drug_Cost', 'Insurance_Drug', 'Insurance_Saving_%', 'Insurance_Drug_FinalCost']].copy()
         total_final_cost = insured_data['Insurance_Drug_FinalCost'].sum()
         savings = total_base_cost - total_final_cost
@@ -41,7 +41,7 @@ if selected_drugs:
         st.success(f"🎉 **Total Savings:** ${savings:,.2f}")
 
     else:
-        # No insurance — find the cheapest alternative per base drug
+        
         st.subheader("🔄 Suggested Cheaper Alternatives (USD)")
         alt_suggestions = []
 
@@ -57,7 +57,7 @@ if selected_drugs:
                     alt_costs.append((alt_name, alt_price))
 
             if alt_costs:
-                # Sort to get cheapest
+                
                 cheapest_alt = sorted(alt_costs, key=lambda x: x[1])[0]
                 if cheapest_alt[1] < base_cost:
                     alt_suggestions.append([base_drug, base_cost, cheapest_alt[0], cheapest_alt[1]])

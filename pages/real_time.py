@@ -4,37 +4,36 @@ import os
 import pandas as pd
 
 
-# --- File paths ---
+
 DB_FILE = "data/formulary.db"
 
-# --- Initialize SQLite connection ---
+
 conn = sqlite3.connect(DB_FILE, check_same_thread=False)
 cursor = conn.cursor()
 
-# --- Ensure Medicine column is indexed for faster search ---
 try:
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_medicine ON formulary(Medicine)")
     conn.commit()
 except Exception as e:
     st.warning(f"Index creation issue: {e}")
 
-# --- Function to fetch cheapest alternative for a given medicine ---
+
 def get_drug_info(medicine_name):
     cursor.execute("SELECT * FROM formulary WHERE Medicine = ?", (medicine_name,))
     row = cursor.fetchone()
     columns = [desc[0] for desc in cursor.description]
 
     if row:
-        # Medicine exists
+        
         data = dict(zip(columns, row))
         cost_cols = ["Drug_Cost", "Cost1", "Cost2", "Cost3", "Cost4", "Cost5"]
         alt_cols = ["Medicine", "Alternative_1", "Alternative_2", "Alternative_3", "Alternative_4", "Alternative_5"]
 
-        # Filter valid costs (ignore 0 or None)
+       
         costs = [data.get(c) for c in cost_cols if data.get(c) not in (None, 0)]
         cheapest_cost = min(costs)
 
-        # Determine which option is cheapest
+        
         cheapest_drug = "Original"
         for i, c in enumerate(cost_cols):
             if data.get(c) == cheapest_cost:
@@ -59,7 +58,7 @@ def get_drug_info(medicine_name):
             "Effective_Cost": effective_cost
         }
     else:
-        # Medicine is new → use the same info (no alternatives)
+        
         return {
             "Exists": False,
             "Medicine": medicine_name,
@@ -72,13 +71,11 @@ def get_drug_info(medicine_name):
             "Effective_Cost": None
         }
 
-# --- Streamlit UI ---
 
 st.title("💊 Real-Time Formulary Impact Dashboard")
 
 st.markdown("Enter a medicine name to see its cost and best alternative:")
 
-# --- Input medicine ---
 medicine_name = st.text_input("Medicine Name")
 
 if medicine_name:
@@ -92,7 +89,6 @@ if medicine_name:
     st.subheader("Drug Cost & Savings Info")
     st.table(pd.DataFrame([info]))
 
-# --- Optional: Add new medicine ---
 with st.expander("➕ Add New Drug Record (Optional)"):
     if "form_submitted" not in st.session_state:
         st.session_state.form_submitted = False
@@ -124,7 +120,7 @@ with st.expander("➕ Add New Drug Record (Optional)"):
             st.session_state.form_submitted = True
             medicine_name = record["Medicine"].strip()
 
-            # normalize empty fields
+            
             for key in record:
                 if record[key] == "" or record[key] is None:
                     record[key] = None

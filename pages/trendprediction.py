@@ -45,18 +45,43 @@ if option == "Predict Future Trend":
         drug_df = df[df["drugname"] == selected_drug]
 
         if not drug_df.empty:
-          
+            # Compute historical averages/modes for the selected drug
+            # Compute historical averages/modes for the selected drug
+            avg_values = {
+                "season": drug_df["season"].mode()[0],
+                "alternatedrug": drug_df["alternatedrug"].mode()[0],
+                "alternatedrugcost": drug_df["alternatedrugcost"].mean(),
+                "no_of_customer_using_drug": drug_df["no_of_customer_using_drug"].mean(),
+                "no_of_customer_using_alternate_drug": drug_df["no_of_customer_using_alternate_drug"].mean()
+            }
+
+            # Add small variation (±10%)
+            variation = 0.1  
+
             future_df = pd.DataFrame({
-                "season": np.random.choice(drug_df["season"].unique(), size=len(selected_months)),
-                "drugname": selected_drug,
-                "alternatedrug": np.random.choice(drug_df["alternatedrug"].unique(), size=len(selected_months)),
-                "alternatedrugcost": np.random.choice(drug_df["alternatedrugcost"], size=len(selected_months)),
-                "no_of_customer_using_drug": np.random.choice(drug_df["no_of_customer_using_drug"], size=len(selected_months)),
-                "no_of_customer_using_alternate_drug": np.random.choice(drug_df["no_of_customer_using_alternate_drug"], size=len(selected_months)),
-                "Year": selected_year,
+                "season": [avg_values["season"]] * len(selected_months),
+                "drugname": [selected_drug] * len(selected_months),
+                "alternatedrug": [avg_values["alternatedrug"]] * len(selected_months),
+                "alternatedrugcost": [
+                    np.round(avg_values["alternatedrugcost"] * np.random.uniform(1-variation, 1+variation), 2)
+                    for _ in selected_months
+                ],
+                "no_of_customer_using_drug": [
+                    np.round(avg_values["no_of_customer_using_drug"] * np.random.uniform(1-variation, 1+variation), 2)
+                    for _ in selected_months
+                ],
+                "no_of_customer_using_alternate_drug": [
+                    np.round(avg_values["no_of_customer_using_alternate_drug"] * np.random.uniform(1-variation, 1+variation), 2)
+                    for _ in selected_months
+                ],
+                "Year": [selected_year] * len(selected_months),
                 "Month": selected_months,
                 "YearMonth": [f"{selected_year}-{m:02d}" for m in selected_months]  
             })
+
+
+                    
+           
 
            
             cat_cols = ["season", "drugname", "alternatedrug", "YearMonth"]

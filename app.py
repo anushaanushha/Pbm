@@ -6,7 +6,7 @@ st.set_page_config(page_title="PBM Optimization", page_icon="💊", layout="cent
 
 
 
-st.markdown("<h1 style='text-align:center;'>PBM Optimization</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>💊 PBM Optimization</h1>", unsafe_allow_html=True)
 st.write("---")
 
 
@@ -25,7 +25,7 @@ option = st.selectbox(
 )
 
 if option == "Formulary Impact Analysis":
-    st.switch_page("pages/formulatory.py")
+    st.switch_page("pages/formulary.py")
 elif option == "Therapeutic Equivalence Optimization":
     st.switch_page("pages/equivalence.py")
 elif option == "Drug Utilization Trend Prediction":

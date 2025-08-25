@@ -8,7 +8,7 @@ def load_data():
 
 df = load_data()
 
-st.title("💊 Real Time Formulary Impact Analysis")
+st.title("💊 Formulary Impact Analysis")
 
 # Multi-select dropdown for drugs
 drug_list = sorted(df['Medicine'].dropna().unique().tolist())

@@ -51,8 +51,8 @@ if option == "Predict Future Trend":
                 "season": drug_df["season"].mode()[0],
                 "alternatedrug": drug_df["alternatedrug"].mode()[0],
                 "alternatedrugcost": drug_df["alternatedrugcost"].mean(),
-                "no_of_customer_using_drug": drug_df["no_of_customer_using_drug"].mean(),
-                "no_of_customer_using_alternate_drug": drug_df["no_of_customer_using_alternate_drug"].mean()
+                "no_of_customer_using_drug": drug_df["no_of_customer_using_drug"].mode()[0],
+                "no_of_customer_using_alternate_drug": drug_df["no_of_customer_using_alternate_drug"].mode()[0]
             }
 
             # Add small variation (±10%)
@@ -67,17 +67,18 @@ if option == "Predict Future Trend":
                     for _ in selected_months
                 ],
                 "no_of_customer_using_drug": [
-                    np.round(avg_values["no_of_customer_using_drug"] * np.random.uniform(1-variation, 1+variation), 2)
+                    int(avg_values["no_of_customer_using_drug"] * np.random.uniform(1-variation, 1+variation))
                     for _ in selected_months
                 ],
                 "no_of_customer_using_alternate_drug": [
-                    np.round(avg_values["no_of_customer_using_alternate_drug"] * np.random.uniform(1-variation, 1+variation), 2)
+                    int(avg_values["no_of_customer_using_alternate_drug"] * np.random.uniform(1-variation, 1+variation))
                     for _ in selected_months
                 ],
                 "Year": [selected_year] * len(selected_months),
                 "Month": selected_months,
                 "YearMonth": [f"{selected_year}-{m:02d}" for m in selected_months]  
             })
+
 
 
                     

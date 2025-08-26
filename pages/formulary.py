@@ -4,7 +4,7 @@ import pandas as pd
 
 @st.cache_data
 def load_data():
-    return pd.read_csv("data/updated_prescription_dates.csv")
+    return pd.read_csv("data/full_dataset_with_new_avg_cost_and_score.csv")
 
 df = load_data()
 

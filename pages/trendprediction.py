@@ -13,14 +13,14 @@ rf_model = saved["model"]
 label_encoders = saved["encoders"]
 
 
-data_path = "data/train3.csv"
+data_path = "data/synthetic_drug_data_with_year_month.csv"
 df = pd.read_csv(data_path)
 
 st.title("Drug Cost Prediction & Trend Analysis")
 
 option = st.selectbox(
     "Choose an option",
-    ["Predict Future Trend", "Understand the Pattern"]
+    ["Predict Future Trend", "Understand the Pattern","Seasonal Drug Sales Analysis"]
 )
 
 
@@ -120,4 +120,40 @@ elif option == "Understand the Pattern":
         ax.grid(True)
         st.pyplot(fig)
     else:
+
         st.warning("No data available for this drug and year.")
+elif option == "Seasonal Drug Sales Analysis":
+    st.title("💊 Seasonal Drug Sales Analysis")
+
+    
+    seasons = df["season"].unique()
+    years = df["Year"].unique()
+
+    selected_season = st.selectbox("Select Season", sorted(seasons))
+    selected_years = st.multiselect("Select Year(s)", sorted(years), default=[years.min()])
+
+   
+    filtered_df = df[(df["season"] == selected_season) & (df["Year"].isin(selected_years))]
+
+    if not filtered_df.empty:
+        
+        result = (
+            filtered_df.groupby("drugname")
+            .agg(
+                total_customers=("no_of_customer_using_drug", "sum"),
+                avg_cost=("drugcost", "mean")
+            )
+            .reset_index()
+            .sort_values(by="total_customers", ascending=False)   
+        )
+
+        st.subheader(f"📌 Drugs Sold in {selected_season} for {', '.join(map(str, selected_years))}")
+        st.dataframe(result)
+
+        
+        st.subheader("📊 Total Drug Usage (Combined Selected Years)")
+        st.bar_chart(result.set_index("drugname")["total_customers"])
+
+    else:
+        st.warning("⚠️ No data available for the selected filters.")
+    

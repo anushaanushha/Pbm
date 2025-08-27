@@ -1,14 +1,8 @@
 import streamlit as st
-
-
 st.set_page_config(page_title="PBM Optimization", page_icon="💊", layout="centered")
-
-
-
 
 st.markdown("<h1 style='text-align:center;'>💊 PBM Optimization</h1>", unsafe_allow_html=True)
 st.write("---")
-
 
 option = st.selectbox(
     "Select Option",

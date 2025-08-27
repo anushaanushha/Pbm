@@ -133,7 +133,7 @@ def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
 st.title("💊 Medicine Alternative Finder")
 st.write("Search for a medicine and get the cheapest alternative recommendations.")
 
-file_path = "data/full_dataset_with_new_avg_cost_and_score.csv"
+file_path = "data\updated_prescription_dates.csv"
 df = load_data(file_path)
 tfidf, tfidf_matrix, knn = build_knn(df, use_svd=True, n_components=200)
 

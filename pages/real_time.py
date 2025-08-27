@@ -145,7 +145,7 @@ with st.expander("➕ Add New Drug Record (Optional)"):
 
                     st.success(f"✅ New medicine '{medicine_name}' inserted successfully!")
 
-                    # Clear form inputs safely
+                    
                     try:
                         clear_keys = [
                             "id_input", "med_input", "cost_input",

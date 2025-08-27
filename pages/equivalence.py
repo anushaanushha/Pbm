@@ -5,9 +5,7 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.neighbors import NearestNeighbors
 import streamlit as st
 
-# -------------------------------
-# Utility: Parse cost safely
-# -------------------------------
+
 def parse_cost(x):
     s = str(x).strip()
     cleaned = re.sub(r"[^0-9.]", "", s)
@@ -18,9 +16,7 @@ def parse_cost(x):
     except:
         return float("inf")
 
-# -------------------------------
-# Utility: Collect row alternatives
-# -------------------------------
+
 def row_alternatives(row):
     alts, costs = [], []
     for j in range(1, 6):
@@ -32,18 +28,15 @@ def row_alternatives(row):
                 alts.append(alt)
                 costs.append(cost)
     pairs = list(zip(alts, costs))
-    pairs.sort(key=lambda x: x[1])  # sort by cost
+    pairs.sort(key=lambda x: x[1])  
     return pairs
 
-# -------------------------------
-# Load dataset (cached)
-# -------------------------------
 @st.cache_data
 def load_data(file_path):
     df = pd.read_csv(file_path)
     df.fillna("NULL", inplace=True)
 
-    # Precompute helper columns
+  
     df["combined"] = (
         df["Medicine"].astype(str) + " "
         + (df["Therapeutic Class"].astype(str) if "Therapeutic Class" in df.columns else "")
@@ -53,15 +46,13 @@ def load_data(file_path):
     df["med_lower"] = df["Medicine"].str.lower()
     return df
 
-# -------------------------------
-# Build TF-IDF + KNN (cached)
-# -------------------------------
+
 @st.cache_resource
 def build_knn(df, use_svd=True, n_components=200):
     tfidf = TfidfVectorizer(stop_words="english")
     tfidf_matrix = tfidf.fit_transform(df["combined"])
 
-    # Optional dimensionality reduction (for speed)
+    
     if use_svd:
         svd = TruncatedSVD(n_components=n_components, random_state=42)
         reduced_matrix = svd.fit_transform(tfidf_matrix)
@@ -73,9 +64,7 @@ def build_knn(df, use_svd=True, n_components=200):
 
     return tfidf, reduced_matrix, knn
 
-# -------------------------------
-# Recommendation Function
-# -------------------------------
+
 def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
     matches = df[df["med_lower"] == medicine_name.lower()]
     if matches.empty:
@@ -84,7 +73,7 @@ def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
     idx = matches.index[0]
     input_row = df.loc[idx]
 
-    # Alternatives from the same row
+    
     input_alts = row_alternatives(input_row)
     top_line = None
     if input_alts:
@@ -96,7 +85,7 @@ def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
             "from_cost": parse_cost(input_row["Drug_Cost"]) if "Drug_Cost" in df.columns else "NA",
         }
 
-    # Nearest neighbors
+  
     distances, indices = knn.kneighbors(tfidf_matrix[idx].reshape(1, -1), n_neighbors=6)
     others = []
     for i in indices.flatten():
@@ -114,7 +103,6 @@ def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
             "from_cost": parse_cost(row_i["Drug_Cost"]) if "Drug_Cost" in df.columns else "NA",
         })
 
-    # Deduplicate by alternative name, keep cheapest
     seen = {}
     def keyfn(x): return x["alt"].strip().lower()
     for item in others:
@@ -132,7 +120,7 @@ def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
 
     others = [o for o in others if keyfn(o) != keyfn(top_line)]
 
-    # Format result
+   
     lines = []
     lines.append(f"👉 **Drug name**: {top_line['from_med']}")
     lines.append(f"**Original Cost**: {top_line['from_cost']}")
@@ -141,9 +129,7 @@ def recommend_and_format(medicine_name: str, df, tfidf_matrix, knn):
 
     return "<br>".join(lines)
 
-# -------------------------------
-# Streamlit UI
-# -------------------------------
+
 st.title("💊 Medicine Alternative Finder")
 st.write("Search for a medicine and get the cheapest alternative recommendations.")
 

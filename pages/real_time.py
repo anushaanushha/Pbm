@@ -2,7 +2,26 @@ import streamlit as st
 import sqlite3
 import os
 import pandas as pd
+import base64
 
+
+def set_background(image_file):
+    with open(image_file, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    bg_img = f"""
+    <style>
+    [data-testid="stAppViewContainer"] {{
+        background-image: url("data:image/jpeg;base64,{encoded}");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
+    st.markdown(bg_img, unsafe_allow_html=True)
+
+# Call function
+set_background("data/back.jpeg")
 
 
 DB_FILE = "data/formulary.db"

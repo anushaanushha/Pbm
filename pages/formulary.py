@@ -1,7 +1,24 @@
 import streamlit as st
 import pandas as pd
+import base64
+
+def set_background(image_file):
+    with open(image_file, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    bg_img = f"""
+    <style>
+    [data-testid="stAppViewContainer"] {{
+        background-image: url("data:image/jpeg;base64,{encoded}");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
+    st.markdown(bg_img, unsafe_allow_html=True)
 
 
+set_background("data/back.jpeg")
 @st.cache_data
 def load_data():
     return pd.read_csv("data/full_dataset_with_new_avg_cost_and_score.csv")

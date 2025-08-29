@@ -123,19 +123,28 @@ elif option == "Understand the Pattern":
     selected_drug = st.selectbox("Select Drug Name", drug_list)
     selected_year = st.slider("Select Year", int(df["Year"].min()), int(df["Year"].max()))
 
-    
+   
     pattern_df = df[(df["drugname"] == selected_drug) & (df["Year"] == selected_year)]
 
     if not pattern_df.empty:
+       
+        pattern_df = (
+            pattern_df.groupby("Month", as_index=False)[
+                ["no_of_customer_using_drug", "no_of_customer_using_alternate_drug"]
+            ].sum()
+        )
+
+        
         pattern_df = pattern_df.sort_values("Month")
 
         
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.plot(pattern_df["Month"], pattern_df["drugcost"], marker='o', color='blue', label='Drug Cost')
-        ax.plot(pattern_df["Month"], pattern_df["alternatedrugcost"], marker='o', color='red', label='Alternate Drug Cost')
+        ax.plot(pattern_df["Month"], pattern_df["no_of_customer_using_drug"], marker='o', color='blue', label='Normal drug user')
+        ax.plot(pattern_df["Month"], pattern_df["no_of_customer_using_alternate_drug"], marker='o', color='red', label='Alternate drug user')
+
         ax.set_xlabel("Month")
-        ax.set_ylabel("Cost")
-        ax.set_title(f"Cost Trend for {selected_drug} in {selected_year}")
+        ax.set_ylabel("Number of Users")
+        ax.set_title(f"User Trend for {selected_drug} in {selected_year}")
         ax.legend()
         ax.grid(True)
         st.pyplot(fig)

@@ -22,7 +22,7 @@ def set_background(image_file):
     st.markdown(bg_img, unsafe_allow_html=True)
 
 
-set_background("data/back.jpeg")
+set_background("data/back.jpg")
 
 
 model_path = "data/drug_trend3rd.pkl"

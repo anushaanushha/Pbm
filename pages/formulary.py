@@ -18,7 +18,7 @@ def set_background(image_file):
     st.markdown(bg_img, unsafe_allow_html=True)
 
 
-set_background("data/back.jpeg")
+set_background("data/back.jpg")
 @st.cache_data
 def load_data():
     return pd.read_csv("data/full_dataset_with_new_avg_cost_and_score.csv")

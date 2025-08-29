@@ -21,7 +21,7 @@ def set_background(image_file):
     st.markdown(bg_img, unsafe_allow_html=True)
 
 # Call function
-set_background("data/back.jpeg")
+set_background("data/back.jpg")
 
 
 DB_FILE = "data/formulary.db"

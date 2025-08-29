@@ -123,13 +123,13 @@ elif option == "Understand the Pattern":
     selected_drug = st.selectbox("Select Drug Name", drug_list)
     selected_year = st.slider("Select Year", int(df["Year"].min()), int(df["Year"].max()))
 
-    # Filter data for selected drug & year
+    
     pattern_df = df[(df["drugname"] == selected_drug) & (df["Year"] == selected_year)]
 
     if not pattern_df.empty:
         pattern_df = pattern_df.sort_values("Month")
 
-        # --- Line Chart for Cost Trend ---
+        
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.plot(pattern_df["Month"], pattern_df["drugcost"], marker='o', color='blue', label='Drug Cost')
         ax.plot(pattern_df["Month"], pattern_df["alternatedrugcost"], marker='o', color='red', label='Alternate Drug Cost')
@@ -140,7 +140,7 @@ elif option == "Understand the Pattern":
         ax.grid(True)
         st.pyplot(fig)
 
-        # --- Customer Usage Numbers ---
+        
         total_customers_drug = pattern_df["no_of_customer_using_drug"].sum()
         total_customers_alt = pattern_df["no_of_customer_using_alternate_drug"].sum()
 
@@ -148,7 +148,6 @@ elif option == "Understand the Pattern":
         st.write(f"👥 Customers using **{selected_drug}**: {total_customers_drug}")
         st.write(f"👥 Customers using **alternate drug**: {total_customers_alt}")
 
-        # --- Bar Chart for Customer Usage ---
         fig2, ax2 = plt.subplots(figsize=(6, 4))
         ax2.bar(["Normal Drug", "Alternate Drug"], [total_customers_drug, total_customers_alt], 
                 color=["blue", "red"])

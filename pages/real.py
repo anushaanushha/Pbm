@@ -1,10 +1,12 @@
 import streamlit as st
 import sqlite3
-import os
 import pandas as pd
 import base64
 
-# ========== Background Setup ==========
+DB_FILE = "data/formulary.db"
+conn = sqlite3.connect(DB_FILE, check_same_thread=False)
+cursor = conn.cursor()
+
 def set_background(image_file):
     with open(image_file, "rb") as f:
         encoded = base64.b64encode(f.read()).decode()
@@ -20,129 +22,147 @@ def set_background(image_file):
     """
     st.markdown(bg_img, unsafe_allow_html=True)
 
+
 set_background("data/back.jpeg")
 
-# ========== Database Setup ==========
-DB_FILE = "data/formulary.db"
-conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-cursor = conn.cursor()
+# ---------- Helper Functions ----------
+def calculate_effective_cost(row):
+    costs = []
+    if row["Drug_Cost"] and row["Drug_Cost"] > 0:
+        costs.append(row["Drug_Cost"])
+    if row.get("Insurance_Drug_FinalCost") and row["Insurance_Drug_FinalCost"] > 0:
+        costs.append(row["Insurance_Drug_FinalCost"])
+    return min(costs) if costs else None
 
-# Create table if not exists
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS formulary (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    Medicine TEXT,
-    Drug_Cost REAL,
-    use TEXT,
-    TherapeuticClass TEXT
-)
-""")
-conn.commit()
+def find_best_alternative(use, therapeutic_class):
+    cursor.execute(
+        "SELECT * FROM formulary WHERE use=? AND TherapeuticClass=?",
+        (use, therapeutic_class)
+    )
+    rows = cursor.fetchall()
+    if not rows:
+        return None, None
 
-# Index for faster lookup
-try:
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_medicine ON formulary(Medicine)")
-    conn.commit()
-except Exception as e:
-    st.warning(f"Index creation issue: {e}")
+    columns = [desc[0] for desc in cursor.description]
+    df = pd.DataFrame(rows, columns=columns)
+    df["Effective_Cost"] = df.apply(calculate_effective_cost, axis=1)
+    cheapest_row = df.loc[df["Effective_Cost"].idxmin()]
 
-# ========== Functions ==========
-def get_drug_info(medicine_name):
-    """Fetch drug info and find cheapest alternatives (top 5)"""
+    cheapest_drug = (
+        cheapest_row["Medicine"]
+        if cheapest_row["Effective_Cost"] == cheapest_row["Drug_Cost"]
+        else cheapest_row.get("Insurance_Drug")
+    )
+    return cheapest_drug, cheapest_row["Effective_Cost"]
+def get_best_alternative_info(medicine_name):
     cursor.execute("SELECT * FROM formulary WHERE Medicine = ?", (medicine_name,))
     row = cursor.fetchone()
+    if not row:
+        return None
     columns = [desc[0] for desc in cursor.description]
+    record = dict(zip(columns, row))
 
-    if row:
-        data = dict(zip(columns, row))
+    # Decide best alternative (between Drug_Cost and Insurance_Drug_FinalCost)
+    best_alt = None
+    best_cost = None
 
-        # Find alternatives (same Use + Therapeutic Class, exclude self)
-        cursor.execute("""
-            SELECT Medicine, Drug_Cost FROM formulary
-            WHERE use = ? AND TherapeuticClass = ? AND Medicine != ?
-            ORDER BY Drug_Cost ASC
-            LIMIT 5
-        """, (data["use"], data["TherapeuticClass"], data["Medicine"]))
-        alternatives = cursor.fetchall()
+    if record.get("Alternative_1") and record.get("Cost1"):
+        best_alt = record["Alternative_1"]
+        best_cost = record["Cost1"]
 
-        if alternatives:
-            alt_df = pd.DataFrame(alternatives, columns=["Alternative", "Alt_Cost"])
-            cheapest = alt_df.loc[alt_df["Alt_Cost"].idxmin()]
-            cheapest_drug = cheapest["Alternative"]
-            cheapest_cost = cheapest["Alt_Cost"]
-            saving_percent = round((data["Drug_Cost"] - cheapest_cost) * 100 / data["Drug_Cost"], 2)
-        else:
-            cheapest_drug = data["Medicine"]
-            cheapest_cost = data["Drug_Cost"]
-            saving_percent = 0
+    # return only the required fields
+    return {
+        "Medicine": record["Medicine"],
+        "Drug_Cost": record["Drug_Cost"],
+        "Use": record["use"],
+        "TherapeuticClass": record["TherapeuticClass"],
+        "Best_Alternative": best_alt,
+        "Best_Alternative_Cost": best_cost
+    }
 
-        return {
-            "Exists": True,
-            "Medicine": data["Medicine"],
-            "Use": data["use"],
-            "TherapeuticClass": data["TherapeuticClass"],
-            "Drug_Cost": data["Drug_Cost"],
-            "Cheapest_Option": cheapest_drug,
-            "Cheapest_Cost": cheapest_cost,
-            "Saving_vs_Original_%": saving_percent
-        }, alternatives
-    else:
-        return {
-            "Exists": False,
-            "Medicine": medicine_name,
-            "Drug_Cost": None,
-            "Cheapest_Option": medicine_name,
-            "Cheapest_Cost": None,
-            "Saving_vs_Original_%": 0
-        }, []
+
+def insert_new_drug(medicine, cost, use, thera_class):
+    cursor.execute("SELECT * FROM formulary WHERE Medicine=?", (medicine,))
+    if cursor.fetchone():
+        return False, None, None  # already exists
+
+    # Find best alternative before inserting
+    alt_drug, alt_cost = find_best_alternative(use, thera_class)
+
+    cursor.execute(
+        """
+        INSERT INTO formulary (
+            Medicine, Drug_Cost, use, TherapeuticClass,
+            Alternative_1, Cost1,
+            Alternative_2, Alternative_3, Alternative_4, Alternative_5,
+            sideEffect0, sideEffect1, sideEffect2, sideEffect3,
+            Cost2, Cost3, Cost4, Cost5,
+            insurance, Insurance_Drug, Insurance_Saving_Percent, Insurance_Drug_FinalCost
+        )
+        VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL,
+                NULL, NULL, NULL, NULL)
+        """,
+        (medicine, cost, use, thera_class, alt_drug, alt_cost)
+    )
+    conn.commit()
+    return True, alt_drug, alt_cost
+
+def get_drug_info(medicine_name):
+    cursor.execute("SELECT * FROM formulary WHERE Medicine = ?", (medicine_name,))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    columns = [desc[0] for desc in cursor.description]
+    return dict(zip(columns, row))
 
 
 st.title("💊 Real-Time Formulary Impact Dashboard")
-st.markdown("Enter a medicine name to see its cost and best alternative:")
 
-medicine_name = st.text_input("Medicine Name")
-
-if medicine_name:
-    info, alternatives = get_drug_info(medicine_name.strip())
-
-    if info["Exists"]:
-        st.success(f"💡 Medicine exists in database! Best alternative: {info['Cheapest_Option']}")
-    else:
-        st.info("⚠️ Medicine is new. No alternative exists yet.")
-
-    st.subheader("📊 Drug Cost & Savings Info")
-    st.table(pd.DataFrame([info]))
-
-    if alternatives:
-        st.subheader("🔄 Top 5 Alternatives")
-        st.dataframe(pd.DataFrame(alternatives, columns=["Alternative", "Alt_Cost"]))
+if "results" not in st.session_state:
+    st.session_state.results = []
 
 
-with st.expander("➕ Add New Drug Record"):
-    with st.form("new_entry"):
-        record = {
-            "Medicine": st.text_input("Medicine"),
-            "Drug_Cost": st.number_input("Drug Cost", min_value=0.0, step=0.01),
-            "use": st.text_input("Use (e.g., Allergy, Fever, Pain)"),
-            "TherapeuticClass": st.text_input("Therapeutic Class (e.g., Antihistamine, Analgesic)")
-        }
+with st.form("drug_entry", clear_on_submit=True):
+    medicine_name = st.text_input("🔍 Enter Medicine Name")
+    submitted = st.form_submit_button("Check Medicine")
 
-        submitted = st.form_submit_button("Insert")
+    if submitted and medicine_name:
+        info = get_drug_info(medicine_name.strip())
+        if info:
+            st.session_state.results.append(info)
+        else:
+            st.warning(f"⚠ Medicine '{medicine_name}' not found in DB. Add it below.")
 
-        if submitted:
-            med_name = record["Medicine"].strip()
-            if med_name:
-                cursor.execute("SELECT * FROM formulary WHERE Medicine = ?", (med_name,))
-                row = cursor.fetchone()
+if st.session_state.results:
+    st.subheader("📊 Checked Medicines")
+    display_df = pd.DataFrame([
+        get_best_alternative_info(r["Medicine"]) for r in st.session_state.results
+    ])
+    st.dataframe(display_df)
 
-                if row:
-                    st.warning(f"⚠️ Medicine '{med_name}' already exists in the database!")
-                else:
-                    columns_sql = ", ".join(record.keys())
-                    placeholders = ", ".join(["?"] * len(record))
-                    sql = f"INSERT INTO formulary ({columns_sql}) VALUES ({placeholders})"
-                    cursor.execute(sql, list(record.values()))
-                    conn.commit()
-                    st.success(f"✅ New medicine '{med_name}' inserted successfully!")
+
+st.subheader("➕ Add a New Drug to Database")
+with st.form("add_new_drug", clear_on_submit=True):
+    new_med = st.text_input("Medicine Name")
+    new_cost = st.number_input("Drug Cost", min_value=0.0, step=0.01)
+    new_use = st.text_input("Use")
+    new_class = st.text_input("Therapeutic Class")
+    add_btn = st.form_submit_button("Insert Drug")
+
+    if add_btn and new_med:
+        success, alt_drug, alt_cost = insert_new_drug(
+            new_med.strip(), new_cost, new_use.strip(), new_class.strip()
+        )
+        if success:
+            if alt_drug:
+                st.success(
+                    f"✅ '{new_med}' added! Best alternative stored: {alt_drug} (Cost {alt_cost})"
+                )
             else:
-                st.error("⚠️ Medicine name cannot be empty.")
+                st.success(
+                    f"✅ '{new_med}' added! ⚠ No alternative found for this class."
+                )
+        else:
+            st.warning(f"⚠ Medicine '{new_med}' already exists in DB.")

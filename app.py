@@ -11,9 +11,10 @@ def set_background(image_file):
     <style>
     [data-testid="stAppViewContainer"] {{
         background-image: url("data:image/jpg;base64,{encoded}");
-        background-size: cover;
+        background-size: 100% auto;
         background-repeat: no-repeat;
         background-attachment: fixed;
+        image-rendering: crisp-edges; 
     }}
 
     [data-testid="stHeader"] {{
@@ -28,7 +29,7 @@ def set_background(image_file):
     st.markdown(bg_img, unsafe_allow_html=True)
 
 
-set_background("data/frontpage.jpg")  
+set_background("data/front.png")  
 
 
 st.markdown("<h1 style='text-align:center; color:black;'>💊 PBM Optimization</h1>", unsafe_allow_html=True)

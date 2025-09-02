@@ -55,36 +55,30 @@ def find_best_alternative(use, therapeutic_class):
     )
     return cheapest_drug, cheapest_row["Effective_Cost"]
 def get_best_alternative_info(medicine_name):
-    cursor.execute("SELECT * FROM formulary WHERE Medicine = ?", (medicine_name,))
+    med = medicine_name.strip().lower()
+    cursor.execute("SELECT * FROM formulary WHERE lower(Medicine)=?", (med,))
     row = cursor.fetchone()
     if not row:
         return None
     columns = [desc[0] for desc in cursor.description]
     record = dict(zip(columns, row))
-
-    # Decide best alternative (between Drug_Cost and Insurance_Drug_FinalCost)
-    best_alt = None
-    best_cost = None
-
+    best_alt, best_cost = None, None
     if record.get("Alternative_1") and record.get("Cost1"):
         best_alt = record["Alternative_1"]
         best_cost = record["Cost1"]
-
-    # return only the required fields
     return {
         "Medicine": record["Medicine"],
         "Drug_Cost": record["Drug_Cost"],
-        "Use": record["use"],
+        "Use": record["use"] if "use" in record else record.get("Use"),
         "TherapeuticClass": record["TherapeuticClass"],
         "Best_Alternative": best_alt,
         "Best_Alternative_Cost": best_cost
     }
 
-
 def insert_new_drug(medicine, cost, use, thera_class):
     cursor.execute("SELECT * FROM formulary WHERE Medicine=?", (medicine,))
     if cursor.fetchone():
-        return False, None, None  # already exists
+        return False, None, None  
 
     # Find best alternative before inserting
     alt_drug, alt_cost = find_best_alternative(use, thera_class)
@@ -110,7 +104,8 @@ def insert_new_drug(medicine, cost, use, thera_class):
     return True, alt_drug, alt_cost
 
 def get_drug_info(medicine_name):
-    cursor.execute("SELECT * FROM formulary WHERE Medicine = ?", (medicine_name,))
+    med = medicine_name.strip().lower()
+    cursor.execute("SELECT * FROM formulary WHERE lower(Medicine)=?", (med,))
     row = cursor.fetchone()
     if not row:
         return None
